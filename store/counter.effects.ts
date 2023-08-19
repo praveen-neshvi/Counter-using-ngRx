@@ -1,7 +1,7 @@
 import { Actions, createEffect, ofType } from "@ngrx/effects";
-import { decrement, increment } from "./counter.actions";
+import { decrement, increment, init, set } from "./counter.actions";
 
-import { tap, withLatestFrom } from "rxjs/operators"
+import { tap, withLatestFrom, switchMap, of } from "rxjs"
 import { Injectable } from "@angular/core";
 import { Store } from "@ngrx/store";
 import { countSelector } from "./counter.selector";
@@ -12,9 +12,21 @@ export class CounterEffects {
   constructor (private actions$ : Actions, private store : Store<{ counter: number}>) {}
 
 
+  loadEffect = createEffect(()=> this.actions$.pipe(
+    ofType(init),                                                    //This side effect gets triggred only for init action
+    switchMap( () => {
+      const storedCounter = localStorage.getItem('count');
+      if (storedCounter){
+        return of(set({value: +storedCounter}))         //of operator is used to create the return statement into an observable because switchMap mandatorily needs an observable as return item
+      }
+      return of(set({value: 0}))
+    })
+  ))
+
+
 
   saveCount = createEffect(() => this.actions$.pipe(
-    ofType(increment, decrement),
+    ofType(increment, decrement),                                   //This side effect gets triggred only for increment or decrement actions
     withLatestFrom(this.store.select(countSelector)),
     tap(([action, counter]) => {
       console.log(action)
